@@ -4,6 +4,8 @@ function switchLoginTab(option) {
 
 	var loginForm = document.getElementById('loginForm');
 	var signupForm = document.getElementById('signupForm');
+
+	const errorMsg = document.getElementById('errorMessage');
 	if (option == 'login') {
 		login.style.textDecoration= 'underline #362b29 2px';
 		signup.style.textDecoration = 'none';
@@ -15,6 +17,8 @@ function switchLoginTab(option) {
 		loginForm.style.display = 'none';
 		signupForm.style.display = 'initial';
 	}
+
+	errorMsg.innerHTML = '';
 }
 
 function togglePassword(id) {
@@ -27,31 +31,69 @@ function ajax(option) {
 	var xmlhttp = new XMLHttpRequest();
 	xmlhttp.onreadystatechange = function() {
 	  if (this.readyState == 4 && this.status == 200) {
-	  	const response = this.response;
-	  	if (response == 'dberror') {
+	  	const response = JSON.parse(this.response);
+	  	console.log(response);
+	  	const errorMsg = document.getElementById('errorMessage');
 
-	  	} else if (response == 'pwerror') {
+	  	if (response.success == 'true') {
+	  		const welcome = document.getElementById('welcome');
+	  		welcome.style.display = 'initial';
+	  		const frontForm = document.getElementById('frontForm');
+	  		frontForm.style.display = 'none';
+	  	}
 
-	  	} else if (response == '1') {
-	  		
+	  	if (response.error !== 'false') {
+	  		if (response.error == 'devicenotfound') {
+	  			const verifyDevice = document.getElementById('verifyDevice');
+		  		verifyDevice.style.display = 'initial';
+		  		const frontForm = document.getElementById('frontForm');
+		  		frontForm.style.display = 'none';
+	  		} else {
+	  			errorMsg.innerHTML = getErrorMessage(response.error);
+	  		}
 	  	}
 	  }
 	};
-	var get = "";
+	var get = "handleForms.php";
 	if (option == 'login') {
 		const username = document.getElementById('username').value;
 		const password = document.getElementById('password').value;
-		get = "?action=login&username=" + username + "&password=" + password;
+		get = get + "?action=login&username=" + username + "&password=" + password;
 	} else if (option == 'signup') {
 		const email = document.getElementById('emailSignup').value;
 		const username = document.getElementById('usernameSignup').value;
 		const phone = document.getElementById('phone').value;
 		const password = document.getElementById('passwordSignup1').value;
 		const password2 = document.getElementById('passwordSignup2').value;
-		get = "?action=signup&email=" + email + "&username=" + username + "&password=" + password + "&password2=" + password2
+		get = get + "?action=signup&email=" + email + "&username=" + username + "&phone=" + phone + "&password=" + password + "&password2=" + password2
 	}
 	xmlhttp.open("GET", get, true);
 	xmlhttp.send();
 }
 
+function getErrorMessage(code) {
+	switch (code) {
+		case 'pwerror':
+			return 'Invalid username or password';
+			break;
+		case 'pwdsdontmatch':
+		    return 'Passwords don\'t match';
+		    break;
+		case 'pwshort':
+		    return 'Password must be at least 7 characters long';
+		    break;
+		case 'usernamenotvalid':
+			return 'Please enter a username';
+			break;
+		case 'emailnotvalid':
+			return 'Email not valid';
+			break;
+		case 'usernametaken':
+			return 'That username is already taken'
+			break;
+		case 'emailtaken':
+			return 'That email is already taken';
+			break;
+	}
+}
 
