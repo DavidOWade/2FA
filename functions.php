@@ -30,6 +30,7 @@ function handleLogin($get) {
 			$result['error'] = 'false';
 		} else {
 			$result['error'] = 'devicenotfound';
+			generateOneTimePw();
 		}
 	} else {
 	    $result['error'] = 'pwerror';
@@ -125,6 +126,10 @@ function verifyDevice($user_id, $conn) {
 		$query = "SELECT * FROM allowed_devices WHERE DeviceId='" . $device_id . "';";
 		$result = mysqli_query($conn, $query);
 
+		if ($result->num_rows == 0) {
+			return false;
+		}
+
 		$row = mysqli_fetch_row($result);
 
 		if ($row[0] == $user_id and $row[1] == $device_id) {
@@ -140,6 +145,9 @@ function verifyDevice($user_id, $conn) {
 	}
 }
 
+function generateOneTimePassword() {
+	
+}
 
 
 
