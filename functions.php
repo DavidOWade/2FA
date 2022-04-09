@@ -18,20 +18,24 @@ function handleLogin($get) {
 	$conn = openDB();
 
 	$query = "SELECT * FROM users WHERE Username='" . $username . "';";
-	$result = mysqli_query($conn, $query);
+	$mysqli_result = mysqli_query($conn, $query);
 
-	$row = mysqli_fetch_row($result);
+	$row = mysqli_fetch_row($mysqli_result);
 
 	if (password_verify($password, $row[4])) {
 		$user_id = $row[0];
-		$result = verifyDevice($user_id, $conn);
-		if ($result) {
-			$result['success'] = 'true';
-			$result['error'] = 'false';
-		} else {
-			$result['error'] = 'devicenotfound';
-			generateOneTimePw();
-		}
+		//$cookie_found = verifyDevice($user_id, $conn);
+
+		$opt = generateOneTimePw();
+
+		echo $opt;
+		// if ($cookie_found) {
+		// 	$result['success'] = 'true';
+		// 	$result['error'] = 'false';
+		// } else {
+		// 	$result['error'] = 'devicenotfound';
+		// 	$opt = generateOneTimePw();
+		// }
 	} else {
 	    $result['error'] = 'pwerror';
 
@@ -80,8 +84,8 @@ function handleSignup($get) {
 	$conn = openDB();
 
 	$query = "SELECT COUNT(Id) AS COUNT FROM users WHERE Username='" . $username . "';";
-	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_row($result);
+	$mysqli_result = mysqli_query($conn, $query);
+	$row = mysqli_fetch_row($mysqli_result);
 
 	$num_accounts = intval($row[0]);
 
@@ -93,8 +97,8 @@ function handleSignup($get) {
 	}
 
 	$query = "SELECT COUNT(Id) AS COUNT FROM users WHERE Email='" . $email . "';";
-	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_row($result);
+	$mysqli_result = mysqli_query($conn, $query);
+	$row = mysqli_fetch_row($mysqli_result);
 
 	$num_emails = intval($row[0]);
 
@@ -108,7 +112,7 @@ function handleSignup($get) {
 	$password_hashed = password_hash($password, PASSWORD_DEFAULT);
 
 	$query = "INSERT INTO users (Username, Email, Phone, Password) VALUES ('" . $username . "','" . $email . "','" . $phone . "','" . $password_hashed . "');";
-	$result = mysqli_query($conn, $query);
+	mysqli_query($conn, $query);
 
 	$result['success'] = 'true';
 	$resiult['error'] = 'false';
@@ -145,8 +149,8 @@ function verifyDevice($user_id, $conn) {
 	}
 }
 
-function generateOneTimePassword() {
-	
+function generateOneTimePw() {
+	return rand(100000,999999);
 }
 
 
