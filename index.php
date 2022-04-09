@@ -68,9 +68,13 @@ Stuff to add:
 		<p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
 	</div>
 	<div id="verifyDevice" class="largeCenterBox" style="display: none;">
-		<h3>It seems this device has not logged in before</h3>
+		<h2>Verify device</h2>
 		<hr style="border: 1px solid #534340;">
-		
+		<p>You are logging in with a device that is not yet verified</p>
+		<p>A 6-digit one-time-passcode has been sent to you via SMS. Enter your passcode:</p>
+		<input type="text" id="otp" placeholder="------">
+		<br><br>
+		<button onclick="ajax('verifyOtp')">Verify</button>
 	</div>
 </body>
 </html>

@@ -12,6 +12,10 @@ if (isset($_GET['action'])) {
 	if ($action == 'signup') {
 		handleSignup($_GET);
 	}
+
+	if ($action == 'verifyOtp') {
+		verifyOtp($_GET);
+	}
 }
 
 

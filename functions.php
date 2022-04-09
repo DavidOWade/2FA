@@ -24,18 +24,19 @@ function handleLogin($get) {
 
 	if (password_verify($password, $row[4])) {
 		$user_id = $row[0];
-		//$cookie_found = verifyDevice($user_id, $conn);
 
-		$opt = generateOneTimePw();
+		$device = checkDevice($user_id, $conn);
 
-		echo $opt;
-		// if ($cookie_found) {
-		// 	$result['success'] = 'true';
-		// 	$result['error'] = 'false';
-		// } else {
-		// 	$result['error'] = 'devicenotfound';
-		// 	$opt = generateOneTimePw();
-		// }
+		if ($device['success'] == 'true') {
+			$result['success'] = 'true';
+		} else {
+			$device_id = $device['deviceId'];
+			$otp = generateOneTimePw();
+			$query = "INSERT INTO one_time_password(UserId, DeviceId, OTP) VALUES('" . $user_id . "', '" . $device_id ."', '" . $otp . "');";
+			mysqli_query($conn, $query); // Insert OTP to database
+			$result['error'] = 'devicenotfound';
+		}
+
 	} else {
 	    $result['error'] = 'pwerror';
 
@@ -123,29 +124,80 @@ function handleSignup($get) {
 
 }
 
-function verifyDevice($user_id, $conn) {
+function checkDevice($user_id, $conn) {
+	$result = array();
+	$result['success'] = 'false';
+
 	if (isset($_COOKIE['deviceId'])) {
 		$device_id = $_COOKIE['deviceId'];
 
-		$query = "SELECT * FROM allowed_devices WHERE DeviceId='" . $device_id . "';";
-		$result = mysqli_query($conn, $query);
+		$query = "SELECT * FROM allowed_devices WHERE UserId='" . $user_id . "' AND DeviceId='" . $device_id . "';";
+		$mysqli_result = mysqli_query($conn, $query);
 
-		if ($result->num_rows == 0) {
-			return false;
+		if ($mysqli_result->num_rows == 0) {
+			$result['deviceId'] = $device_id;
+			return $result;
 		}
 
-		$row = mysqli_fetch_row($result);
+		$row = mysqli_fetch_row($mysqli_result);
 
 		if ($row[0] == $user_id and $row[1] == $device_id) {
-			return true;
+			$result['success'] = 'true';
+			$result['deviceId'] = $device_id;
+			return $result;
 		} else {
-			return false;
+			return $result;
 		}
 	} else {
 		$str = rand();
 		$hash = md5($str);
-		setcookie('deviceId', $hash, 86400);
-		return false;
+		setcookie('deviceId', $hash, time() + (86400 * 30));
+		setcookie('attemptedUserLoginId', $user_id, time() + (86400 * 30));
+		$result['deviceId'] = $hash;
+		return $result;
+	}
+}
+
+function verifyOtp($get) {
+	$result = array();
+	$result['success'] = 'false';
+
+	if (isset($_COOKIE['deviceId']) and isset($_COOKIE['attemptedUserLoginId'])) {
+		$user_id = $_COOKIE['attemptedUserLoginId'];
+		$device_id = $_COOKIE['deviceId'];
+		$otp = $_GET['otp'];
+
+		$conn = openDB();
+
+		$query = "SELECT COUNT(UserId) AS MatchExists FROM one_time_password WHERE UserId='" . $user_id . "' AND DeviceId='" . $device_id . "' AND OTP='" . $otp . "';";
+		$mysqli_result = mysqli_query($conn, $query);
+
+		if ($mysqli_result->num_rows == 0) {
+			$result['error'] = 'nomatch';
+			echo json_encode($result);
+			closeDB($conn);
+			exit();
+		}
+
+		$row = mysqli_fetch_row($mysqli_result);
+
+		if (intval($row[0]) == 1) {
+			$result['error'] = 'false';
+			$result['success'] = 'true';
+		} else {
+			$result['error'] = 'nomatch';
+		}
+
+		if ($result['success'] == 'true') {
+			$query = "DELETE FROM one_time_password WHERE UserId='" . $user_id . "' AND DeviceId='" . $device_id . "' AND OTP='" . $otp . "';";
+			mysqli_query($conn, $query);
+			$query = "INSERT INTO allowed_devices (UserId, DeviceId) VALUES ('" . $user_id . "', '" . $device_id . "');";
+			mysqli_query($conn, $query);
+		}
+
+		echo json_encode($result);
+		closeDB($conn);
+		exit();
 	}
 }
 

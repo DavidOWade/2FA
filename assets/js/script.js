@@ -38,8 +38,14 @@ function ajax(option) {
 	  	if (response.success == 'true') {
 	  		const welcome = document.getElementById('welcome');
 	  		welcome.style.display = 'initial';
-	  		const frontForm = document.getElementById('frontForm');
-	  		frontForm.style.display = 'none';
+	  		if (option == 'login' || option == 'signup') {
+	  			const frontForm = document.getElementById('frontForm');
+	  			frontForm.style.display = 'none';
+	  		} else if (option == 'verifyOtp') {
+	  			const verifyDevice = document.getElementById('verifyDevice');
+		  		verifyDevice.style.display = 'none';
+	  		}
+	  		
 	  	}
 
 	  	if (response.error !== 'false') {
@@ -66,6 +72,10 @@ function ajax(option) {
 		const password = document.getElementById('passwordSignup1').value;
 		const password2 = document.getElementById('passwordSignup2').value;
 		get = get + "?action=signup&email=" + email + "&username=" + username + "&phone=" + phone + "&password=" + password + "&password2=" + password2
+	} else if (option == 'verifyOtp') {
+		const otp = document.getElementById('otp').value;
+		console.log(otp);
+		get = get + "?action=verifyOtp&otp=" + otp;
 	}
 	xmlhttp.open("GET", get, true);
 	xmlhttp.send();
