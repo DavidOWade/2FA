@@ -1,6 +1,6 @@
 # 2FA
 
-Simple two-factor authentication application
+Simple two-factor authentication application including email verification and SMS one-time-passwords
 
 # Requirements
 
