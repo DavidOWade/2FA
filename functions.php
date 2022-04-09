@@ -1,6 +1,15 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
+require 'vendor/autoload.php';
+
 function openDB() {
-	return new mysqli("localhost", "root", "", "2FA");
+	$config_file = file_get_contents("config.json");
+	$config = json_decode($config_file, true)["mysqli"];
+
+	return new mysqli($config["host"], $config["username"], $config["password"], $config["database"]);
 }
 
 function closeDB($db) {
@@ -22,10 +31,14 @@ function handleLogin($get) {
 
 	$row = mysqli_fetch_row($mysqli_result);
 
-	if (password_verify($password, $row[4])) {
+	if ($row[5] == '0') {
+		$result['error'] = 'emailnotverified';
+	} else if (password_verify($password, $row[4])) {
 		$user_id = $row[0];
 
 		$device = checkDevice($user_id, $conn);
+
+		$phone = $row[3];
 
 		if ($device['success'] == 'true') {
 			$result['success'] = 'true';
@@ -35,6 +48,8 @@ function handleLogin($get) {
 			$query = "INSERT INTO one_time_password(UserId, DeviceId, OTP) VALUES('" . $user_id . "', '" . $device_id ."', '" . $otp . "');";
 			mysqli_query($conn, $query); // Insert OTP to database
 			$result['error'] = 'devicenotfound';
+
+			send_otp_sms_code($phone, $otp);
 		}
 
 	} else {
@@ -110,13 +125,22 @@ function handleSignup($get) {
 		exit();
 	}
 
-	$password_hashed = password_hash($password, PASSWORD_DEFAULT);
+	$verify_id = strval(generateOneTimePw());
 
-	$query = "INSERT INTO users (Username, Email, Phone, Password) VALUES ('" . $username . "','" . $email . "','" . $phone . "','" . $password_hashed . "');";
-	mysqli_query($conn, $query);
+	$verify_sent = verify_email($username, $email, $verify_id);
 
-	$result['success'] = 'true';
-	$resiult['error'] = 'false';
+	if ($verify_sent) {
+		$password_hashed = password_hash($password, PASSWORD_DEFAULT);
+
+		$query = "INSERT INTO users (Username, Email, Phone, Password, Active, VerifyId) VALUES ('" . $username . "','" . $email . "','" . $phone . "','" . $password_hashed . "', '0', '" . $verify_id . "');";
+		mysqli_query($conn, $query);
+
+		$result['success'] = 'true';
+		$result['error'] = 'false';
+	} else {
+		$result['error'] = 'emailnotsent';
+	}
+
 	echo json_encode($result);
 
 	closeDB($conn);
@@ -204,6 +228,94 @@ function verifyOtp($get) {
 function generateOneTimePw() {
 	return rand(100000,999999);
 }
+
+function send_mail($address, $subject, $body) {
+	$config_file = file_get_contents("config.json");
+	$config = json_decode($config_file, true);
+
+	$mail = new PHPMailer();
+
+	try {
+   		//Server settings
+	    // $mail->SMTPDebug = SMTP::DEBUG_SERVER;                      //Enable verbose debug output
+	    $mail->isSMTP();                                            //Send using SMTP
+	    $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
+	    $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
+	    $mail->SMTPSecure = 'ssl'; // secure transfer enabled REQUIRED for Gmail
+	    $mail->Username   = $config["smtp"]["username"];                     //SMTP username
+	    $mail->Password   = $config["smtp"]["password"];                               //SMTP password
+	    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
+	    $mail->Port       = 465;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
+
+	    //Recipients
+	    $mail->setFrom($config["smtp"]["username"], 'David');
+	    $mail->addAddress($address);               //Name is optional
+	    $mail->addReplyTo($config["smtp"]["username"], 'David');
+
+	    //Content
+	    $mail->isHTML(true);                                  //Set email format to HTML
+	    $mail->Subject = $subject;
+	    $mail->Body    = $body;
+	    $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
+
+	    $mail->send();
+	    return true;
+	} catch (Exception $e) {
+	    return false;
+	}
+}
+
+function verify_email($username, $email, $verify_id) {
+	$host = gethostname();
+	$link = gethostbyname($host);
+
+	$subj = "Your account verification";
+
+	$body = 'Hello ' . $username . ',
+
+	<p>This email was registered to our app.</p>
+
+	<p>Follow <a href="https://' . $link . '/2FA/verifyEmail.php?email=' . urlencode($email) . '&verifyId=' . $verify_id . '">this</a> link to verify your account:</p>
+
+	- Some really secure app';
+
+	return send_mail($email, $subj, $body);
+}
+
+
+function send_sms($phone, $body) {
+	$config_file = file_get_contents("config.json");
+	$config = json_decode($config_file, true);
+
+	// Configure HTTP basic authorization: BasicAuth
+	$config = ClickSend\Configuration::getDefaultConfiguration()
+	              ->setUsername($config["clicksend"]["username"])
+	              ->setPassword($config["clicksend"]["password"]);
+
+	$apiInstance = new ClickSend\Api\SMSApi(new GuzzleHttp\Client(),$config);
+	$msg = new \ClickSend\Model\SmsMessage();
+	$msg->setBody($body); 
+	$msg->setTo($phone);
+	$msg->setSource("sdk");
+
+	// \ClickSend\Model\SmsMessageCollection | SmsMessageCollection model
+	$sms_messages = new \ClickSend\Model\SmsMessageCollection(); 
+	$sms_messages->setMessages([$msg]);
+
+	try {
+	    $result = $apiInstance->smsSendPost($sms_messages);
+	    print_r($result);
+	    return true;
+	} catch (Exception $e) {
+	    return false;
+	}
+}
+
+function send_otp_sms_code($phone, $otp) {
+	$body = "Your verification code: " . $otp;
+	send_sms($phone, $body);
+}
+
 
 
 

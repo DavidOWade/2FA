@@ -37,17 +37,23 @@ function ajax(option) {
 
 	  	if (response.success == 'true') {
 	  		const welcome = document.getElementById('welcome');
-	  		welcome.style.display = 'initial';
-	  		if (option == 'login' || option == 'signup') {
+	  		
+	  		if (option == 'login') {
+	  			welcome.style.display = 'initial';
 	  			const frontForm = document.getElementById('frontForm');
 	  			frontForm.style.display = 'none';
+	  		} else if (option == 'signup') {
+	  			const verifyEmailMessage = document.getElementById('verifyEmailMessage');
+	  			verifyEmailMessage.style.display = 'initial';
+	  			const email = document.getElementById('emailSignup').value
+	  			verifyEmailMessage.innerHTML = "An email has been sent to " + email + ". Please verify your email";
 	  		} else if (option == 'verifyOtp') {
+	  			welcome.style.display = 'initial';
 	  			const verifyDevice = document.getElementById('verifyDevice');
 		  		verifyDevice.style.display = 'none';
 	  		}
 	  		
 	  	}
-
 	  	if (response.error !== 'false') {
 	  		if (response.error == 'devicenotfound') {
 	  			const verifyDevice = document.getElementById('verifyDevice');
@@ -103,6 +109,9 @@ function getErrorMessage(code) {
 			break;
 		case 'emailtaken':
 			return 'That email is already taken';
+			break;
+		case 'emailnotverified':
+			return 'Please verify your email';
 			break;
 	}
 }

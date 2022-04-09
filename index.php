@@ -22,7 +22,7 @@ Stuff to add:
 </head>
 <body>
 	<div id="frontForm" class="largeCenterBox" style="display: initial;">
-		<h2>Really super secure app</h2>
+		<h2>Really super secure app*</h2>
 		<hr style="border: 1px solid #534340;">
 		<br>
 		<ul>
@@ -37,6 +37,15 @@ Stuff to add:
                 <input id="password" type="password" id="password" placeholder="Password">
                 <i onclick="togglePassword('password')" class="bi bi-eye-slash" id="togglePassword"></i>
             </p>
+            <?php
+	            if (isset($_GET['verifySuccess'])) {
+	            	if ($_GET['verifySuccess'] == 'true') {
+	        			echo '<p>Your email verification succeeded. You may now log in.</p>';
+	        		} else {
+	        			echo '<p>Your email verification failed. Please try again.</p>';
+	        		}
+	            }
+            ?>
 			<button onclick="ajax('login')" id="submitLogin">Login</button>
 		</div>
 		<div id="signupForm" style="display: none;">
@@ -54,6 +63,7 @@ Stuff to add:
                 <input id="passwordSignup2" type="password" name="passwordSignup2" placeholder="Confirm password">
                 <i onclick="togglePassword('passwordSignup2')" class="bi bi-eye-slash" id="togglePasswordSignup2"></i>
             </p>
+			<p id="verifyEmailMessage" style="display: none;"></p>
 			<br><br>
 			<button onclick="ajax('signup')" id="submitSignup">Sign up</button>
 		</div>
